@@ -1,2 +1,2 @@
-//exports...
-export const NAME = "stream";
+export * from "./stream";
+export * from "./io";
