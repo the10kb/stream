@@ -1,0 +1,12 @@
+{
+  "testMatch" : ["**/tests/**/*.spec.ts"],
+  "globals": {
+    "ts-jest": {
+      "tsConfigFile": "./tsconfig.json"
+    }
+  },
+  "testURL": "http://localhost/",
+  "transform": { ".(ts|tsx)": "./node_modules/ts-jest/preprocessor.js" },
+  
+  "moduleFileExtensions": [ "ts", "js" ]
+}

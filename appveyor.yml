@@ -1,0 +1,28 @@
+# Test against the latest version of this Node.js version
+environment:
+  version: 0.0.{build}
+
+cache:
+  - node_modules -> package.json
+
+install:
+  - npm install
+  # skipping package.json
+  #- git add .
+  - npm version %APPVEYOR_BUILD_VERSION% --no-git-tag-version
+
+build_script:
+  - npm test
+  - npm run build
+
+for:
+  -
+    branches:
+      only:
+        - /release\/.*/
+    after_build:
+
+      - ps: >-
+          "//registry.npmjs.org/:_authToken=$env:npm_auth_token`n" | out-file "$env:userprofile\.npmrc" -Encoding ASCII
+
+      - npm publish --access public
