@@ -1,34 +1,34 @@
-export interface INotifiableStream<M>{
-    notify( m : M ) : this;
+/*tslint:disable:max-classes-per-file*/
+
+export interface INotifiableStream<M> {
+    notify( m: M ): this;
 }
 
-export interface IPipeableStream<M>{
-    pipe( s : INotifiableStream<M> ) : this;
-    unpipe(s : INotifiableStream<M>) : this;
+export interface IPipeableStream<M> {
+    pipe( s: INotifiableStream<M> ): this;
+    unpipe(s: INotifiableStream<M>): this;
 }
 
-export interface IStreamOnMessageCallback<M>{
-    (m : M) : M|Promise<M>|Promise<void>|void;
-}
+export type IStreamOnMessageCallback<M> = (m: M)  => M|Promise<M>|Promise<void>|void;
 
-export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M>{
-    static PREVENT_PROPAGATION : string = "litestream-stop-all-notifying";
-    private _observers : INotifiableStream<M>[];
-    
+export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
+    public static PREVENT_PROPAGATION: string = "litestream-stop-all-notifying";
+    private _observers: Array<INotifiableStream<M>>;
+
     constructor( private _onMessageCallback ?: IStreamOnMessageCallback<M> ) {
-        this._onMessageCallback = this._onMessageCallback || ((m)=>m);
+        this._onMessageCallback = this._onMessageCallback || ((m) => m);
         this._observers = [];
     }
-    
-    notify(message: M): this {
-        let callbackReturn = this._onMessageCallback(message);
 
-        if (typeof callbackReturn == "undefined") {
+    public notify(message: M): this {
+        const callbackReturn = this._onMessageCallback(message);
+
+        if (typeof callbackReturn === "undefined") {
             this.notifyAll(message);
         } else if (callbackReturn instanceof Promise) {
-            (<Promise<any>>callbackReturn)
+            (callbackReturn as Promise<any>)
                 .then((promiseReturn: M | void) => {
-                    if (typeof promiseReturn == "undefined") {
+                    if (typeof promiseReturn === "undefined") {
                         this.notifyAll(message);
                     } else {
                         this.notifyAll(promiseReturn);
@@ -36,40 +36,34 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M>{
                     return promiseReturn;
                 })
                 .catch((value) => {
-                    if (typeof value == "string" && value == Stream.PREVENT_PROPAGATION) {
-                        //just stop it
+                    if (typeof value === "string" && value === Stream.PREVENT_PROPAGATION) {
+                        // just stop it
                     } else {
                         Promise.reject(value);
                     }
                 });
-        } else if( typeof callbackReturn == "string" && callbackReturn == Stream.PREVENT_PROPAGATION){
-            //do nothing
-        }else {
-            this.notifyAll(callbackReturn);    
+        } else if ( typeof callbackReturn === "string" && callbackReturn === Stream.PREVENT_PROPAGATION) {
+            // do nothing
+        } else {
+            this.notifyAll(callbackReturn);
         }
-        
+
         return this;
     }
 
-    pipe(s: INotifiableStream<M>): this {
+    public pipe(s: INotifiableStream<M>): this {
         this._observers.push(s);
         return this;
     }
-    
-    unpipe(s: INotifiableStream<M>): this {
-        let iof = this._observers.indexOf(s);
-        if( iof !== -1 ){
+
+    public unpipe(s: INotifiableStream<M>): this {
+        const iof = this._observers.indexOf(s);
+        if ( iof !== -1 ) {
             this._observers.splice(iof, 1);
         }
         return this;
     }
-    
-    private notifyAll(message:M){
-        for(let observer of this._observers){
-            observer.notify( message );
-        }
-    }
-    
+
     //////////////////////////////////////////////////////
     // Operators /////////////////////////////////////////
     //////////////////////////////////////////////////////
@@ -79,74 +73,79 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M>{
      * @param {IStreamOnMessageCallback<M>} mc
      * @returns {Stream<M>}
      */
-    subscribe( mc : IStreamOnMessageCallback<M> ) : Stream<M>{
-        let newStream = new Stream<M>(mc);
+    public subscribe( mc: IStreamOnMessageCallback<M> ): Stream<M> {
+        const newStream = new Stream<M>(mc);
         this.pipe( newStream );
         return newStream;
     }
 
-    when(filter:(m:M)=>boolean) : WhenStream<M>{
-        let stream = new WhenStream<M>(filter);
+    public when(filter: (m: M) => boolean): WhenStream<M> {
+        const stream = new WhenStream<M>(filter);
         this.pipe( stream );
         return stream;
     }
 
-    unique<T>(predicate : (m:M)=>T) : UniqueStream<M, T>{
-        let stream = new UniqueStream<M, T>(predicate);
+    public unique<T>(predicate: (m: M) => T): UniqueStream<M, T> {
+        const stream = new UniqueStream<M, T>(predicate);
         this.pipe( stream );
         return stream;
     }
 
-    mapTo<T>(predicate : (m:M)=>T ) : MapToStream<M, T>{
-        let stream = new MapToStream<M, T>(predicate);
-        this.pipe( <any>stream );
+    public mapTo<T>(predicate: (m: M) => T ): MapToStream<M, T> {
+        const stream = new MapToStream<M, T>(predicate);
+        this.pipe( stream as any );
         return stream;
     }
-    
-    debounce(timeout : number = 100) : Debounce<M>{
-        let stream = new Debounce<M>(timeout);
+
+    public debounce(timeout: number = 100): Debounce<M> {
+        const stream = new Debounce<M>(timeout);
         this.pipe(stream);
         return stream;
     }
-}
 
-
-export class WhenStream<M> extends Stream<M>{
-    constructor(private _when : (message:M)=>boolean){
-        super( (message:M)=>(this._when(message) ? message : <any>Stream.PREVENT_PROPAGATION) );
+    private notifyAll(message: M) {
+        for (const observer of this._observers) {
+            observer.notify( message );
+        }
     }
 }
 
-export class UniqueStream<M, T> extends Stream<M>{
-    private _keys : T[] = [];
-    constructor(private _predicate : (m:M)=>T){
-        super((m:M)=>{
-            let key = this._predicate(m);
-            if( this._keys.indexOf(key) == -1 ){
+export class WhenStream<M> extends Stream<M> {
+    constructor(private _when: (message: M) => boolean) {
+        super( (message: M) => (this._when(message) ? message : Stream.PREVENT_PROPAGATION as any) );
+    }
+}
+
+export class UniqueStream<M, T> extends Stream<M> {
+    private _keys: T[] = [];
+    constructor(private _predicate: (m: M) => T) {
+        super((m: M) => {
+            const key = this._predicate(m);
+            if ( this._keys.indexOf(key) === -1 ) {
                 this._keys.push(key);
                 return m;
             }
-            return <any>Stream.PREVENT_PROPAGATION;
+            return Stream.PREVENT_PROPAGATION as any;
         });
     }
 }
 
-export class MapToStream<FROM, TO> extends Stream<TO>{
-    constructor(private _mapTo : (m:FROM)=>TO){
-        super((m)=>this._mapTo(<any>m));
+export class MapToStream<FROM, TO> extends Stream<TO> {
+    constructor(private _mapTo: (m: FROM) => TO) {
+        super((m) => this._mapTo(m as any));
     }
 }
 
-export class Debounce<M> extends Stream<M>{
-    private _timeoutHandler : number = -1;
-    
-    constructor(timeout : number){
-        super((m : M)=>{
-            return new Promise<M>((resolve)=>{
-                if( this._timeoutHandler != -1 ){
+export class Debounce<M> extends Stream<M> {
+    private _timeoutHandler: number = -1;
+
+    constructor(timeout: number) {
+        super((m: M) => {
+            return new Promise<M>((resolve) => {
+                if ( this._timeoutHandler !== -1 ) {
                     clearTimeout(this._timeoutHandler);
                 }
-                this._timeoutHandler = <any>setTimeout((me)=>resolve(me), timeout, m);
+                this._timeoutHandler = setTimeout((me) => resolve(me), timeout, m) as any;
             });
         });
     }

@@ -1,42 +1,42 @@
 import {Stream} from "../src";
 
-describe("stream", ()=>{
+describe("stream", () => {
 
-    it("should call self callback after notify", ()=>{
-        return new Promise((resolve)=>{
+    it("should call self callback after notify", () => {
+        return new Promise((resolve) => {
 
-            let s = new Stream<string>((m)=>{
+            const s = new Stream<string>((m) => {
                 expect(m).toBe("test");
                 resolve();
             });
 
             s.notify("test");
-        })
+        });
     });
 
-    it("should pipe message", ()=>{
-        return new Promise((resolve)=>{
+    it("should pipe message", () => {
+        return new Promise((resolve) => {
 
-            let s = new Stream<string>();
+            const s = new Stream<string>();
 
-            s.pipe( new Stream<string>((m)=>{
+            s.pipe(new Stream<string>((m) => {
                 expect(m).toBe("test");
                 resolve();
             }));
 
             s.notify("test");
-        })
+        });
     });
 
-    it("should un-pipe", ()=>{
-        return new Promise((resolve)=>{
+    it("should un-pipe", () => {
+        return new Promise((resolve) => {
 
-            let s = new Stream<string>();
-            let s2 = new Stream<string>(()=>{
+            const s = new Stream<string>();
+            const s2 = new Stream<string>(() => {
                 throw new Error();
             });
 
-            let s3 = new Stream<string>((m)=>{
+            const s3 = new Stream<string>((m) => {
                 expect(m).toBe("test");
                 resolve();
             });
@@ -46,17 +46,17 @@ describe("stream", ()=>{
             s.unpipe(s2);
 
             s.notify("test");
-        })
+        });
     });
 
-    it("should modify message after callback", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>((m)=>{
-                return m + "modify"
+    it("should modify message after callback", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>((m) => {
+                return m + "modify";
             });
 
             s
-                .pipe(new Stream<string>((m)=>{
+                .pipe(new Stream<string>((m) => {
                     expect(m).toBe("testmodify");
                     resolve();
                 }))
@@ -64,12 +64,12 @@ describe("stream", ()=>{
         });
     });
 
-    it("should pipe when stream is async", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>((m)=>{
+    it("should pipe when stream is async", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>((m) => {
                 expect(m).toBe("test");
-                return new Promise<string>((resolve)=>{
-                    setTimeout(()=>{
+                return new Promise<string>((resolve) => {
+                    setTimeout(() => {
                         m = "async";
                         resolve(m);
                     }, 500);
@@ -77,7 +77,7 @@ describe("stream", ()=>{
             });
 
             s
-                .pipe(new Stream<string>((m)=>{
+                .pipe(new Stream<string>((m) => {
                     expect(m).toBe("async");
                     resolve();
                 }))
@@ -85,19 +85,19 @@ describe("stream", ()=>{
         });
     });
 
-    it("should pipe when stream is async and not return anything in promise", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>((m)=>{
+    it("should pipe when stream is async and not return anything in promise", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>((m) => {
                 expect(m).toBe("test");
-                return new Promise<string>((resolve)=>{
-                    setTimeout(()=>{
+                return new Promise<string>((resolve) => {
+                    setTimeout(() => {
                         resolve();
                     }, 500);
                 });
             });
 
             s
-                .pipe(new Stream<string>((m)=>{
+                .pipe(new Stream<string>((m) => {
                     expect(m).toBe("test");
                     resolve();
                 }))
@@ -107,13 +107,13 @@ describe("stream", ()=>{
 
 });
 
-describe("stream operator", ()=>{
+describe("stream operator", () => {
 
-    it("it should do subscribe", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>();
+    it("it should do subscribe", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>();
 
-            s.subscribe((m)=>{
+            s.subscribe((m) => {
                 expect(m).toBe("test");
                 resolve();
             });
@@ -122,16 +122,16 @@ describe("stream operator", ()=>{
         });
     });
 
-    it("it should do when", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>();
+    it("it should do when", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>();
 
-            s.when( (m)=>m=="test" ).subscribe((m)=>{
+            s.when((m) => m == "test").subscribe((m) => {
                 expect(m).toBe("test");
                 resolve();
             });
 
-            s.when((m)=>m=="test2").subscribe((m)=>{
+            s.when((m) => m == "test2").subscribe((m) => {
                 throw new Error();
             });
 
@@ -139,11 +139,11 @@ describe("stream operator", ()=>{
         });
     });
 
-    it("it should do mapTo", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>();
+    it("it should do mapTo", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>();
 
-            s.mapTo( (m)=>m+"-mapped" ).subscribe((m)=>{
+            s.mapTo((m) => m + "-mapped").subscribe((m) => {
                 expect(m).toBe("test-mapped");
                 resolve();
             });
@@ -152,14 +152,14 @@ describe("stream operator", ()=>{
         });
     });
 
-    it("it should do unique", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>();
+    it("it should do unique", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>();
 
             let ac = "";
 
-            s.unique( (m)=>m ).subscribe((m)=>{
-                ac+=m;
+            s.unique((m) => m).subscribe((m) => {
+                ac += m;
             });
 
             s.notify("1");
@@ -171,40 +171,39 @@ describe("stream operator", ()=>{
             s.notify("5");
             s.notify("5");
 
-            expect(ac).toBe("12345" );
+            expect(ac).toBe("12345");
             resolve();
         });
     });
 
-    it("it should do debounce", ()=>{
-        return new Promise((resolve)=>{
-            let s = new Stream<string>();
+    it("it should do debounce", () => {
+        return new Promise((resolve) => {
+            const s = new Stream<string>();
 
-            let start = Date.now();
+            const start = Date.now();
 
-            s.debounce(500).subscribe((m)=>{
+            s.debounce(500).subscribe((m) => {
                 expect(m).toBe("test3");
-                expect(Date.now() - start).toBeGreaterThan( 1500 );
+                expect(Date.now() - start).toBeGreaterThan(1500);
                 resolve();
             });
 
             s.notify("test0");
 
-            setTimeout(()=>{
+            setTimeout(() => {
 
                 s.notify("test1");
 
-                setTimeout(()=>{
+                setTimeout(() => {
                     s.notify("test2");
 
-                    setTimeout(()=>{
+                    setTimeout(() => {
                         s.notify("test3");
 
-                    },400);
-                },400);
-            },400);
+                    }, 400);
+                }, 400);
+            }, 400);
         });
     });
-
 
 });

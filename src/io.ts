@@ -1,10 +1,10 @@
 import {Stream} from "./stream";
 
 export class IO<I, O> {
-    protected _input : Stream<I>;
-    protected _output : Stream<O>;
+    protected _input: Stream<I>;
+    protected _output: Stream<O>;
 
-    constructor(){
+    constructor() {
         this._input = new Stream<I>();
         this._output = new Stream<O>();
     }
