@@ -80,19 +80,19 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
         return newStream;
     }
 
-    public when(filter: (m: M) => boolean): WhenStream<M> {
+    public when(filter: (m: M, self: WhenStream<M>) => boolean): WhenStream<M> {
         const stream = new WhenStream<M>(filter);
         this.pipe( stream );
         return stream;
     }
 
-    public unique<T>(predicate: (m: M) => T): UniqueStream<M, T> {
+    public unique<T>(predicate: (m: M, self: UniqueStream<M, T>) => T): UniqueStream<M, T> {
         const stream = new UniqueStream<M, T>(predicate);
         this.pipe( stream );
         return stream;
     }
 
-    public mapTo<T>(predicate: (m: M) => T ): MapToStream<M, T> {
+    public mapTo<T>(predicate: (m: M, self: MapToStream<M, T>) => T ): MapToStream<M, T> {
         const stream = new MapToStream<M, T>(predicate);
         this.pipe( stream as any );
         return stream;
