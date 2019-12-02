@@ -1,19 +1,29 @@
 /*tslint:disable:max-classes-per-file*/
 
-export interface INotifiableStream<M> {
-    notify( m: M ): this;
-}
+import {$debounceStream, $mapStream, $uniqueStream, $whenStream} from "./operators";
 
-export interface IPipeableStream<M> {
-    pipe( s: INotifiableStream<M> ): this;
-    unpipe(s: INotifiableStream<M>): this;
+export interface IStream<M> {
+    notify( m: M ): this;
+
+    push(...s: Array<IStream<M>>): this;
+
+    pipe( s: IStream<M> ): IStream<M>;
+    unpipe(s: IStream<M>): IStream<M>;
+
+    // operators
+    subscribe( callback: IStreamOnMessageCallback<M>): IStream<M>;
+    when( predicate: IStreamPredicate<M, boolean> ): IStream<M>;
+    map<T>( predicate: IStreamPredicate<M, T>): IStream<T>;
+    unique<K extends string | number>( predicate: IStreamPredicate<M, K>): IStream<M>;
+    debounce( timeout: number ): IStream<M>;
 }
 
 export type IStreamOnMessageCallback<M> = (m: M, self: Stream<M>)  => M|Promise<M>|Promise<void>|void|string;
+export type IStreamPredicate<M, R> = (m: M, self: Stream<M>)  => R;
 
-export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
-    private readonly _observers: Array<INotifiableStream<M>>;
-    private _stopPropagation: boolean = false;
+export class Stream<M> implements IStream<M> {
+    protected readonly _observers: Array<IStream<M>>;
+    protected _stopPropagation: boolean = false;
 
     constructor( private _onMessageCallback ?: IStreamOnMessageCallback<M> ) {
         this._onMessageCallback = this._onMessageCallback || ((m) => m);
@@ -43,22 +53,24 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
         return this;
     }
 
-    public next(s: INotifiableStream<M>): INotifiableStream<M> {
-        this.pipe(s);
-        return s;
-    }
-
-    public pipe(s: INotifiableStream<M>): this {
-        this._observers.push(s);
+    public push(...s: Array<IStream<M>>): this {
+        s.forEach((s) => {
+            this.pipe(s);
+        });
         return this;
     }
 
-    public unpipe(s: INotifiableStream<M>): this {
+    public pipe(s: IStream<M>): IStream<M> {
+        this._observers.push(s);
+        return s;
+    }
+
+    public unpipe(s: IStream<M>): IStream<M> {
         const iof = this._observers.indexOf(s);
         if ( iof !== -1 ) {
             this._observers.splice(iof, 1);
         }
-        return this;
+        return s;
     }
 
     public stopPropagation() {
@@ -71,40 +83,30 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
 
     /**
      * Just an alias for pipe to new stream with callback
-     * @param {IStreamOnMessageCallback<M>} mc
+     * @param {IStreamPredicate<M>} mc
      * @returns {Stream<M>}
      */
-    public subscribe( mc: IStreamOnMessageCallback<M> ): Stream<M> {
-        const newStream = new Stream<M>(mc);
-        this.pipe( newStream );
-        return newStream;
+    public subscribe( mc: IStreamOnMessageCallback<M> ): IStream<M> {
+        return this.pipe( new Stream<M>(mc) );
     }
 
-    public when(filter: (m: M) => boolean): WhenStream<M> {
-        const stream = new WhenStream<M>(filter);
-        this.pipe( stream );
-        return stream;
+    public when(predicate: IStreamPredicate<M,  boolean> ): IStream<M> {
+        return this.pipe( $whenStream<M>(predicate) );
     }
 
-    public unique<T>(predicate: (m: M) => T): UniqueStream<M, T> {
-        const stream = new UniqueStream<M, T>(predicate);
-        this.pipe( stream );
-        return stream;
+    public unique<K extends string | number>( predicate: IStreamPredicate<M, K> ): IStream<M> {
+        return this.pipe( $uniqueStream<M, K>(predicate) );
     }
 
-    public mapTo<T>(predicate: (m: M) => T ): MapToStream<M, T> {
-        const stream = new MapToStream<M, T>(predicate);
-        this.pipe( stream as any );
-        return stream;
+    public map<T>( predicate: IStreamPredicate<M, T> ): IStream<T> {
+        return this.pipe($mapStream(predicate) as IStream<any>) as IStream<any>;
     }
 
-    public debounce(timeout: number = 100): Debounce<M> {
-        const stream = new Debounce<M>(timeout);
-        this.pipe(stream);
-        return stream;
+    public debounce( timeout: number ): IStream<M> {
+        return this.pipe( $debounceStream(timeout) );
     }
 
-    private notifyAll(message: M) {
+    protected notifyAll(message: M) {
         if ( this._stopPropagation ) {
             this._stopPropagation = false;
             return;
@@ -112,46 +114,5 @@ export class Stream<M> implements INotifiableStream<M>, IPipeableStream<M> {
         for (const observer of this._observers) {
             observer.notify( message );
         }
-    }
-}
-
-export class WhenStream<M> extends Stream<M> {
-    constructor(private _when: (message: M, self: WhenStream<M>) => boolean) {
-        super( (message: M, self) => (this._when(message, self as WhenStream<M>) ? message : self.stopPropagation()) );
-    }
-}
-
-export class UniqueStream<M, T> extends Stream<M> {
-    private _keys: T[] = [];
-    constructor(private _predicate: (m: M, self: UniqueStream<M, T>) => T) {
-        super((m: M, self: UniqueStream<M, T>) => {
-            const key = this._predicate(m, self);
-            if ( this._keys.indexOf(key) === -1 ) {
-                this._keys.push(key);
-                return m;
-            }
-            self.stopPropagation();
-        });
-    }
-}
-
-export class MapToStream<FROM, TO> extends Stream<TO> {
-    constructor(private _mapTo: (m: FROM, self: MapToStream<FROM, TO>) => TO) {
-        super((m, self) => this._mapTo(m as any, self as any));
-    }
-}
-
-export class Debounce<M> extends Stream<M> {
-    private _timeoutHandler: number = -1;
-
-    constructor(timeout: number) {
-        super((m: M, self: Debounce<M>) => {
-            return new Promise<M>((resolve) => {
-                if ( this._timeoutHandler !== -1 ) {
-                    clearTimeout(this._timeoutHandler);
-                }
-                this._timeoutHandler = setTimeout((me) => resolve(me), timeout, m) as any;
-            });
-        });
     }
 }

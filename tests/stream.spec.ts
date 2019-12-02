@@ -56,7 +56,7 @@ describe("stream", () => {
             });
 
             s
-                .pipe(new Stream<string>((m) => {
+                .push(new Stream<string>((m) => {
                     expect(m).toBe("testmodify");
                     resolve();
                 }))
@@ -77,7 +77,7 @@ describe("stream", () => {
             });
 
             s
-                .pipe(new Stream<string>((m) => {
+                .push(new Stream<string>((m) => {
                     expect(m).toBe("async");
                     resolve();
                 }))
@@ -143,7 +143,7 @@ describe("stream operator", () => {
         return new Promise((resolve) => {
             const s = new Stream<string>();
 
-            s.mapTo((m) => m + "-mapped").subscribe((m) => {
+            s.map((m) => m + "-mapped").subscribe((m) => {
                 expect(m).toBe("test-mapped");
                 resolve();
             });
