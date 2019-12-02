@@ -7,8 +7,10 @@ export interface IStream<M> {
 
     push(...s: Array<IStream<M>>): this;
 
-    pipe( s: IStream<M> ): IStream<M>;
-    unpipe(s: IStream<M>): IStream<M>;
+    pipe<S extends IStream<M>>( s: S ): S;
+    unpipe<S extends IStream<M>>(s: IStream<M>): S;
+
+    stopPropagation(): this;
 
     // operators
     subscribe( callback: IStreamOnMessageCallback<M>): IStream<M>;
@@ -60,21 +62,22 @@ export class Stream<M> implements IStream<M> {
         return this;
     }
 
-    public pipe(s: IStream<M>): IStream<M> {
+    public pipe<S extends IStream<M>>(s: S): S {
         this._observers.push(s);
         return s;
     }
 
-    public unpipe(s: IStream<M>): IStream<M> {
+    public unpipe<S extends IStream<M>>(s: IStream<M>): S {
         const iof = this._observers.indexOf(s);
         if ( iof !== -1 ) {
             this._observers.splice(iof, 1);
         }
-        return s;
+        return s as S;
     }
 
     public stopPropagation() {
         this._stopPropagation = true;
+        return this;
     }
 
     //////////////////////////////////////////////////////
