@@ -36,30 +36,26 @@ export class Stream<M> implements IStream<M> {
         const callbackReturn = this._onMessageCallback(message, this);
 
         if (typeof callbackReturn === "undefined") {
-            this.propagate(message);
+            this.tryToPropagate(message);
         } else if (callbackReturn instanceof Promise) {
             (callbackReturn as Promise<any>)
                 .then((promiseReturn: M | void) => {
                     if (typeof promiseReturn === "undefined") {
-                        this.propagate(message);
+                        this.tryToPropagate(message);
                     } else {
-                        this.propagate(promiseReturn);
+                        this.tryToPropagate(promiseReturn);
                     }
                     return promiseReturn;
                 });
             // do nothing
         } else {
-            this.propagate(callbackReturn as any);
+            this.tryToPropagate(callbackReturn as any);
         }
 
         return this;
     }
 
     public propagate(message: M) {
-        if ( this._stopPropagation ) {
-            this._stopPropagation = false;
-            return;
-        }
         for (const observer of this._observers) {
             observer.notify( message );
         }
@@ -88,6 +84,14 @@ export class Stream<M> implements IStream<M> {
     public stopPropagation() {
         this._stopPropagation = true;
         return this;
+    }
+
+    protected tryToPropagate( m : M ) : void {
+        if ( this._stopPropagation ) {
+            this._stopPropagation = false;
+            return;
+        }
+        this.propagate(m);
     }
 
     //////////////////////////////////////////////////////
