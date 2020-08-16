@@ -83,6 +83,7 @@ export class Stream<M> implements IStream<M> {
 
     public stopPropagation() {
         this._stopPropagation = true;
+
         return this;
     }
 
