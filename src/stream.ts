@@ -86,14 +86,6 @@ export class Stream<M> implements IStream<M> {
         return this;
     }
 
-    protected tryToPropagate( m : M ) : void {
-        if ( this._stopPropagation ) {
-            this._stopPropagation = false;
-            return;
-        }
-        this.propagate(m);
-    }
-
     //////////////////////////////////////////////////////
     // Operators /////////////////////////////////////////
     //////////////////////////////////////////////////////
@@ -121,5 +113,13 @@ export class Stream<M> implements IStream<M> {
 
     public debounce( timeout: number ): IStream<M> {
         return this.pipe( $debounceStream(timeout) );
+    }
+
+    protected tryToPropagate( m: M ): void {
+        if ( this._stopPropagation ) {
+            this._stopPropagation = false;
+            return;
+        }
+        this.propagate(m);
     }
 }
