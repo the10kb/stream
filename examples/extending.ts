@@ -1,4 +1,4 @@
-import {IStreamOnMessageCallback, Stream} from "../src";
+import {StreamOnMessageCallback, Stream} from "../src";
 
 export class CustomStream extends Stream<string> {
     public append( what: string ): CustomStream {

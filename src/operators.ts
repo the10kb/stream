@@ -1,11 +1,11 @@
-import {IStream, IStreamPredicate, Stream} from "./stream";
+/*
+import {IStream, StreamMessagePredicate, StreamOnMessageCallback} from "./types";
+import {Stream} from "./stream";
 
-export function $whenStream<M>(predicate: IStreamPredicate<M, boolean>): IStream<M> {
-    return new Stream(((m: M, self) => {
+export function $whenStream<M>(predicate: StreamMessagePredicate<M, boolean>): IStream<M> {
+    return new Stream<M, M>(((m: M, self) => {
         if ( predicate(m, self) ) {
             return m;
-        } else {
-            self.stopPropagation();
         }
     }));
 }
@@ -39,3 +39,4 @@ export function $debounceStream<M>(timeout: number) {
         });
     });
 }
+*/

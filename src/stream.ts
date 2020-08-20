@@ -1,38 +1,77 @@
 /*tslint:disable:max-classes-per-file*/
 
 import {$debounceStream, $mapStream, $uniqueStream, $whenStream} from "./operators";
+import {IStream, StreamOnMessageCallback, StreamOnMessageCallbackReturnType} from "./types";
 
-export interface IStream<M> {
-    notify( m: M ): this;
+export class Stream<I, O = I> implements IStream<I, O> {
+    protected readonly _observers: IStream<O, any>[];
 
-    push(...s: Array<IStream<M>>): this;
+    // protected _stopPropagation: boolean = false;
 
-    pipe<S extends IStream<M>>( s: S ): S;
-    unpipe<S extends IStream<M>>(s: IStream<M>): S;
-
-    stopPropagation(): this;
-
-    // operators
-    subscribe( callback: IStreamOnMessageCallback<M>): IStream<M>;
-    when( predicate: IStreamPredicate<M, boolean> ): IStream<M>;
-    map<T>( predicate: IStreamPredicate<M, T>): IStream<T>;
-    unique<K extends string | number>( predicate: IStreamPredicate<M, K>): IStream<M>;
-    debounce( timeout: number ): IStream<M>;
-}
-
-export type IStreamOnMessageCallback<M> = (m: M, self: Stream<M>)  => M|Promise<M>|Promise<void>|void|string;
-export type IStreamPredicate<M, R> = (m: M, self: Stream<M>)  => R;
-
-export class Stream<M> implements IStream<M> {
-    protected readonly _observers: Array<IStream<M>>;
-    protected _stopPropagation: boolean = false;
-
-    constructor( private _onMessageCallback ?: IStreamOnMessageCallback<M> ) {
-        this._onMessageCallback = this._onMessageCallback || ((m) => m);
+    constructor( private _onMessageCallback ?: StreamOnMessageCallback<I, O> ) {
+        this._onMessageCallback = this._onMessageCallback || ( ( (m : I) => m ) as unknown as StreamOnMessageCallback<I, O>);
         this._observers = [];
     }
 
-    public notify(message: M): this {
+    notify( message: I ): this {
+        const callbackReturn = this._onMessageCallback(message, this);
+
+        this.processStreamCallbackResult( callbackReturn, true );
+
+        return this;
+    }
+
+    protected processStreamCallbackResult( callbackReturn : StreamOnMessageCallbackReturnType<O>, isAsync : boolean ) {
+        if (typeof callbackReturn === "undefined") {
+            // void / undefined is a signal of stop propagation
+        } else if (callbackReturn instanceof Promise) {
+            (callbackReturn as Promise<any>)
+                .then((promiseReturn: O | void) => {
+                    return this.processStreamCallbackResult( promiseReturn, false );
+                });
+            // do nothing
+        } else {
+            if( isAsync ) {
+                setImmediate(()=>{
+                    this.propagate(callbackReturn);
+                });
+            } else {
+                this.propagate( callbackReturn );
+            }
+        }
+    }
+
+    propagate( message: O ): this {
+        for (const observer of this._observers) {
+            observer.notify( message );
+        }
+        return this;
+    }
+
+    pipe<S extends IStream<O, any>>(stream: S): S {
+        this.push( stream );
+        return stream;
+    }
+
+    push<S extends IStream<O, any>>(stream: S): this {
+        let iof = this._observers.indexOf( stream ) ;
+        if( iof == -1 ) {
+            this._observers.push( stream );
+        }
+        return this;
+    }
+
+    unpipe<S extends IStream<O, any>>(stream: S): S {
+        let iof = this._observers.indexOf( stream );
+        if( iof != -1 ){
+            this._observers.splice(iof, 1);
+        }
+        return stream;
+    }
+
+
+
+    /*public notify(message: M): this {
         const callbackReturn = this._onMessageCallback(message, this);
 
         if (typeof callbackReturn === "undefined") {
@@ -90,11 +129,11 @@ export class Stream<M> implements IStream<M> {
     // Operators /////////////////////////////////////////
     //////////////////////////////////////////////////////
 
-    /**
+    /!**
      * Just an alias for pipe to new stream with callback
      * @param {IStreamPredicate<M>} mc
      * @returns {Stream<M>}
-     */
+     *!/
     public subscribe( mc: IStreamOnMessageCallback<M> ): IStream<M> {
         return this.pipe( new Stream<M>(mc) );
     }
@@ -121,5 +160,5 @@ export class Stream<M> implements IStream<M> {
             return;
         }
         this.propagate(m);
-    }
+    }*/
 }
