@@ -1,16 +1,13 @@
-// import {Stream} from "./stream";
 
 export type StreamOnMessageCallbackReturnType<OUTPUT> = OUTPUT|Promise<OUTPUT>|Promise<void>|void
 export type StreamOnMessageCallback<INPUT, OUTPUT = INPUT> = (m: INPUT, self: IStream<INPUT, OUTPUT>)  => StreamOnMessageCallbackReturnType<OUTPUT>;
 
-// export type StreamMessagePredicate<I, O> = (m : I, self:IStream<I, any>) => O;
-
-export interface IStream<INPUT, OUTPUT = INPUT>{
+export interface IStream<INPUT, OUTPUT = INPUT | Error>{
     /**
      * Notify current stream
      * @param message
      */
-    notify( message: INPUT ): this;
+    notify( message: INPUT | Error ): this;
 
     /**
      * Notify subscribed / piped streams, skipping current stream
@@ -39,14 +36,5 @@ export interface IStream<INPUT, OUTPUT = INPUT>{
      * @param stream
      */
     unpipe<S extends IStream<OUTPUT, any>>(stream: S): S;
-
-    // stopPropagation(): this;
-
-    // operators
-    // subscribe( callback: IStreamOnMessageCallback<INPUT>): IStream<INPUT>;
-    // when( predicate: IStreamPredicate<M, boolean> ): IStream<M>;
-    // map<T>( predicate: IStreamPredicate<M, T>): IStream<T>;
-    // unique<K extends string | number>( predicate: IStreamPredicate<M, K>): IStream<M>;
-    // debounce( timeout: number ): IStream<M>;
 }
 

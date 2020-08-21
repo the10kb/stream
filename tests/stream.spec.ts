@@ -1,4 +1,5 @@
 import {Stream} from "../src";
+import {catch$} from "../src/operators";
 
 describe("stream", () => {
 
@@ -105,6 +106,107 @@ describe("stream", () => {
         });
     });
 
+    it("should catch error", ()=>{
+        return new Promise((resolve)=>{
+            let s = new Stream<string>((m)=>{
+                throw new Error(m);
+            });
+
+            s.pipe(catch$<Error, any>((e)=>{
+                expect(e.message).toBe("test");
+                resolve();
+            }));
+
+            s.notify("test");
+        });
+    });
+
+    it("should catch async error", ()=>{
+        return new Promise((resolve)=>{
+            let s = new Stream<string>((m)=>{
+                return Promise.reject<string>(new Error(m));
+            });
+
+            s.pipe(catch$<Error, any>((e)=>{
+                expect(e.message).toBe("test");
+                resolve();
+            }));
+
+            s.notify("test");
+        });
+    });
+
+    it("should catch error by chain of streams", ()=> {
+        return new Promise((resolve) => {
+            let s1 = new Stream<string>((m) => {
+                throw new Error(m)
+            });
+
+            let s2 = new Stream<string>((m) => m);
+
+            s2.pipe(catch$((e) => {
+                expect(e.message).toBe("test");
+                resolve();
+            }))
+
+            s1.pipe(s2)
+
+            s1.notify("test");
+        });
+    });
+
+    it("should catch error by chain of async streams", ()=>{
+        return new Promise((resolve)=>{
+            let s1 = new Stream<string>((m)=>{
+                return Promise.reject<string>(new Error(m));
+            });
+
+            let s2 = new Stream<string>((m)=>Promise.resolve(m));
+
+            s2.pipe(catch$((e)=>{
+                expect(e.message).toBe("test");
+                resolve();
+            }))
+
+            s1.pipe(s2)
+            s1.notify("test");
+        });
+    });
+
+    it("should process error by stream callback", ()=>{
+        return new Promise((resolve)=>{
+
+            let s1 = new Stream<string>((m)=>{
+                throw new Error(m);
+            }, (error)=>{
+                expect(error.message).toBe("test");
+                resolve();
+            });
+
+            s1.notify("test");
+
+        });
+    });
+
+    it("should not propagate error if there are error callback", ()=>{
+        return new Promise((resolve, reject)=>{
+            let s = new Stream<string>((m)=>{
+                return Promise.reject<string>(new Error(m));
+            }, (e)=>{ return "processed error" });
+
+            s
+                .pipe(catch$<Error, any>((e)=>{
+                    expect(true).toBe(false);
+                    reject();
+                }))
+                .pipe(new Stream((m)=>{
+                    expect(m).toBe("processed error")
+                    resolve();
+                }))
+
+            s.notify("test");
+        });
+    })
 });
 
 /*

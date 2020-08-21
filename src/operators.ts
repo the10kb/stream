@@ -1,3 +1,16 @@
+import {IStream, StreamOnMessageCallback} from "./types";
+import {Stream} from "./stream";
+
+export function catch$<E extends Error, O = E>( callback : StreamOnMessageCallback<Error, O> ) : IStream<E, O> {
+    return new Stream<E, O>(null,(message : E, self )=>{
+        if( message instanceof Error) {
+            return callback( message, self );
+        }
+        return message;
+    })
+}
+
+
 /*
 import {IStream, StreamMessagePredicate, StreamOnMessageCallback} from "./types";
 import {Stream} from "./stream";
