@@ -1,8 +1,8 @@
 
-export type StreamOnMessageCallbackReturnType<OUTPUT> = OUTPUT|Promise<OUTPUT>|Promise<void>|void
+export type StreamOnMessageCallbackReturnType<OUTPUT> = OUTPUT|Promise<OUTPUT>|Promise<void>|void;
 export type StreamOnMessageCallback<INPUT, OUTPUT = INPUT> = (m: INPUT, self: IStream<INPUT, OUTPUT>)  => StreamOnMessageCallbackReturnType<OUTPUT>;
 
-export interface IStream<INPUT, OUTPUT = INPUT | Error>{
+export interface IStream<INPUT, OUTPUT = INPUT | Error> {
     /**
      * Notify current stream
      * @param message
@@ -13,7 +13,7 @@ export interface IStream<INPUT, OUTPUT = INPUT | Error>{
      * Notify subscribed / piped streams, skipping current stream
      * @param message
      */
-    propagate( message : OUTPUT ): this;
+    propagate( message: OUTPUT ): this;
 
     /**
      * Pipe output from current stream to provided stream.
@@ -37,4 +37,3 @@ export interface IStream<INPUT, OUTPUT = INPUT | Error>{
      */
     unpipe<S extends IStream<OUTPUT, any>>(stream: S): S;
 }
-
