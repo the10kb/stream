@@ -1,6 +1,6 @@
 /*tslint:disable:max-classes-per-file*/
 
-import {$debounceStream, $mapStream, $uniqueStream, $whenStream} from "./operators";
+// import {$debounceStream, $mapStream, $uniqueStream, $whenStream} from "./operators";
 import {IStream, StreamOnMessageCallback, StreamOnMessageCallbackReturnType} from "./types";
 
 export class Stream<I, O = I> implements IStream<I, O> {
